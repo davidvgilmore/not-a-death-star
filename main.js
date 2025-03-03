@@ -25,24 +25,145 @@ ground.position.y = -10;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Add stars
-const starsGeometry = new THREE.BufferGeometry();
-const starsMaterial = new THREE.PointsMaterial({
-    color: 0xFFFFFF,
-    size: 0.1
-});
+// Create Death Star
+const createDeathStar = () => {
+    const deathStarGroup = new THREE.Group();
+    
+    // Main sphere
+    const sphereGeometry = new THREE.SphereGeometry(40, 64, 64);
+    const sphereMaterial = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.7,
+        metalness: 0.5,
+        flatShading: true
+    });
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    deathStarGroup.add(sphere);
 
-const starsVertices = [];
-for (let i = 0; i < 5000; i++) {
-    const x = (Math.random() - 0.5) * 200;
-    const y = Math.random() * 100; // Only above the ground
-    const z = (Math.random() - 0.5) * 200;
-    starsVertices.push(x, y, z);
-}
+    // Create equatorial trench
+    const trenchGeometry = new THREE.TorusGeometry(40, 1, 16, 100);
+    const trenchMaterial = new THREE.MeshStandardMaterial({
+        color: 0x444444,
+        roughness: 0.8,
+        metalness: 0.6
+    });
+    const trench = new THREE.Mesh(trenchGeometry, trenchMaterial);
+    trench.rotation.x = Math.PI / 2;
+    deathStarGroup.add(trench);
 
-starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-const stars = new THREE.Points(starsGeometry, starsMaterial);
+    // Create superlaser dish
+    const dishGeometry = new THREE.CircleGeometry(8, 32);
+    const dishMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.9,
+        metalness: 0.7,
+        side: THREE.DoubleSide
+    });
+    const dish = new THREE.Mesh(dishGeometry, dishMaterial);
+    dish.position.set(-38, 0, 0); // Position on the surface
+    dish.rotation.y = Math.PI / 2;
+    deathStarGroup.add(dish);
+
+    // Add surface details
+    for (let i = 0; i < 100; i++) {
+        const detailGeometry = new THREE.BoxGeometry(
+            Math.random() * 2 + 1,
+            Math.random() * 2 + 1,
+            0.5
+        );
+        const detailMaterial = new THREE.MeshStandardMaterial({
+            color: 0x666666,
+            roughness: 0.8,
+            metalness: 0.6
+        });
+        const detail = new THREE.Mesh(detailGeometry, detailMaterial);
+        
+        // Position on sphere surface
+        const phi = Math.random() * Math.PI * 2;
+        const theta = Math.random() * Math.PI;
+        detail.position.x = 40 * Math.sin(theta) * Math.cos(phi);
+        detail.position.y = 40 * Math.sin(theta) * Math.sin(phi);
+        detail.position.z = 40 * Math.cos(theta);
+        
+        // Orient to face outward
+        detail.lookAt(0, 0, 0);
+        deathStarGroup.add(detail);
+    }
+
+    // Add memex.tech text
+    const fontLoader = new FontLoader();
+    fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+        const textGeometry = new TextGeometry('memex.tech', {
+            font: font,
+            size: 8,
+            height: 1,
+            curveSegments: 12,
+            bevelEnabled: true,
+            bevelThickness: 0.2,
+            bevelSize: 0.1,
+            bevelOffset: 0,
+            bevelSegments: 5
+        });
+        const textMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.3,
+            metalness: 0.7
+        });
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        
+        // Center the text
+        textGeometry.computeBoundingBox();
+        const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+        textMesh.position.set(-textWidth/2, 20, -35);
+        textMesh.lookAt(0, 0, 0);
+        
+        deathStarGroup.add(textMesh);
+    });
+
+    // Position Death Star in background
+    deathStarGroup.position.set(-100, 50, -150);
+    
+    return deathStarGroup;
+};
+
+// Add enhanced stars
+const createEnhancedStars = () => {
+    const starsGroup = new THREE.Group();
+    
+    // Multiple layers of stars
+    const createStarLayer = (count, size, depth) => {
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        
+        for (let i = 0; i < count; i++) {
+            const x = (Math.random() - 0.5) * 400;
+            const y = Math.random() * 200;
+            const z = (Math.random() - 0.5) * 400 + depth;
+            vertices.push(x, y, z);
+        }
+        
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        const material = new THREE.PointsMaterial({
+            color: 0xFFFFFF,
+            size: size,
+            sizeAttenuation: true
+        });
+        
+        return new THREE.Points(geometry, material);
+    };
+    
+    starsGroup.add(createStarLayer(2000, 0.15, -200));
+    starsGroup.add(createStarLayer(2000, 0.1, -100));
+    starsGroup.add(createStarLayer(2000, 0.05, 0));
+    
+    return starsGroup;
+};
+
+const stars = createEnhancedStars();
 scene.add(stars);
+
+const deathStar = createDeathStar();
+scene.add(deathStar);
 
 // Create comet
 const cometGeometry = new THREE.SphereGeometry(
@@ -371,8 +492,9 @@ function animate() {
     updateParticles(sparkParticles, 0.2, 0.4, 0.3);
     updateParticles(glowParticles, 0.1, 0.2, 0.15);
     
-    // Rotate stars slightly
+    // Animate stars and Death Star
     stars.rotation.y += 0.0001;
+    deathStar.rotation.y += 0.0001;
     
     renderer.render(scene, camera);
 }
