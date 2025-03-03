@@ -9,7 +9,7 @@
   "routes": [
     { "src": "/", "dest": "/index.html" },
     { "src": "/main.js", "dest": "/main.js" },
-    { "src": "/images/(.*)", "dest": "/public/images/$1" },
+    { "src": "/social-share.png", "dest": "/public/social-share.png" },
     { "handle": "filesystem" }
   ]
 }
