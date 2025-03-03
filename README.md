@@ -19,7 +19,7 @@ This project was created using:
 
 ## Live Demo
 
-Check out the live demo at: [https://threejscometworldmemextech-ovqfdw87a-david-gilmores-projects.vercel.app/](https://threejscometworldmemextech-ovqfdw87a-david-gilmores-projects.vercel.app/)
+Check out [the demo here](https://threejscometworldmemextech-q0b97ggx2-david-gilmores-projects.vercel.app/)
 
 ## Created With
 Built insanely fast using [Memex.tech](https://memex.tech) without writing a line of code.
