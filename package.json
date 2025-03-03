@@ -1,0 +1,11 @@
+{
+  "name": "threejs-comet-world-memex-tech",
+  "version": "1.0.0",
+  "description": "Three.js animation featuring a comet and Death Star with memex.tech branding",
+  "scripts": {
+    "start": "serve ."
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+}
