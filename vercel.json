@@ -2,14 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "**/*",
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     { "src": "/", "dest": "/index.html" },
     { "src": "/main.js", "dest": "/main.js" },
-    { "src": "/social-share.png", "dest": "/public/social-share.png" },
+    { "src": "/social-share.png", "dest": "/social-share.png" },
     { "handle": "filesystem" }
   ]
 }
