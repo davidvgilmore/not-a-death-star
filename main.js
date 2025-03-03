@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -185,9 +186,103 @@ fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.
     comet.add(textMesh);
 });
 
-// Position camera
+// Setup controls
+const controls = new PointerLockControls(camera, document.body);
+
+// Initial camera position
 camera.position.set(0, 5, 20);
-camera.lookAt(0, 0, 0);
+
+// Movement variables
+const moveSpeed = 0.3;
+const moveState = {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false
+};
+
+// Click to start
+document.addEventListener('click', function () {
+    controls.lock();
+});
+
+// Movement controls
+document.addEventListener('keydown', function (event) {
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveState.forward = true;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveState.backward = true;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            moveState.left = true;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            moveState.right = true;
+            break;
+        case 'Space':
+            moveState.up = true;
+            break;
+        case 'ShiftLeft':
+            moveState.down = true;
+            break;
+    }
+});
+
+document.addEventListener('keyup', function (event) {
+    switch (event.code) {
+        case 'ArrowUp':
+        case 'KeyW':
+            moveState.forward = false;
+            break;
+        case 'ArrowDown':
+        case 'KeyS':
+            moveState.backward = false;
+            break;
+        case 'ArrowLeft':
+        case 'KeyA':
+            moveState.left = false;
+            break;
+        case 'ArrowRight':
+        case 'KeyD':
+            moveState.right = false;
+            break;
+        case 'Space':
+            moveState.up = false;
+            break;
+        case 'ShiftLeft':
+            moveState.down = false;
+            break;
+    }
+});
+
+// Instructions overlay
+const instructions = document.createElement('div');
+instructions.style.position = 'absolute';
+instructions.style.top = '10px';
+instructions.style.width = '100%';
+instructions.style.textAlign = 'center';
+instructions.style.color = '#ffffff';
+instructions.style.fontSize = '14px';
+instructions.style.fontFamily = 'Arial';
+instructions.style.textShadow = '1px 1px 1px rgba(0,0,0,0.5)';
+instructions.innerHTML = 'Click to start<br>WASD/Arrows = Move, Space = Up, Shift = Down<br>Mouse = Look around';
+document.body.appendChild(instructions);
+
+controls.addEventListener('lock', function () {
+    instructions.style.display = 'none';
+});
+
+controls.addEventListener('unlock', function () {
+    instructions.style.display = 'block';
+});
 
 // Animation
 let time = 0;
@@ -200,6 +295,30 @@ const cometPath = {
 
 function animate() {
     requestAnimationFrame(animate);
+
+    // Handle movement
+    if (controls.isLocked) {
+        const actualMoveSpeed = moveSpeed;
+
+        if (moveState.forward) {
+            controls.moveForward(actualMoveSpeed);
+        }
+        if (moveState.backward) {
+            controls.moveForward(-actualMoveSpeed);
+        }
+        if (moveState.left) {
+            controls.moveRight(-actualMoveSpeed);
+        }
+        if (moveState.right) {
+            controls.moveRight(actualMoveSpeed);
+        }
+        if (moveState.up) {
+            camera.position.y += actualMoveSpeed;
+        }
+        if (moveState.down) {
+            camera.position.y -= actualMoveSpeed;
+        }
+    }
     
     time += 1;
     
