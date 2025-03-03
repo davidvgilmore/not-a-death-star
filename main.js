@@ -29,22 +29,22 @@ scene.add(ground);
 const createDeathStar = () => {
     const deathStarGroup = new THREE.Group();
     
-    // Main sphere with better materials
+    // Main sphere with darker materials
     const sphereGeometry = new THREE.SphereGeometry(40, 64, 64);
     const sphereMaterial = new THREE.MeshStandardMaterial({
-        color: 0xaaaaaa,
-        roughness: 0.6,
-        metalness: 0.3,
+        color: 0x666666,         // Darker gray (was 0xaaaaaa)
+        roughness: 0.7,          // Increased roughness for more matte look
+        metalness: 0.4,          // Slight increase for better definition
         emissive: 0x222222,
-        emissiveIntensity: 0.2
+        emissiveIntensity: 0.1   // Reduced to make it darker
     });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     deathStarGroup.add(sphere);
 
-    // Create equatorial trench with proper geometry
-    const trenchGeometry = new THREE.TorusGeometry(40, 1.5, 16, 100);
+    // Create equatorial trench with more subtle geometry
+    const trenchGeometry = new THREE.TorusGeometry(40, 0.6, 16, 100);
     const trenchMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
+        color: 0x222222,
         roughness: 0.7,
         metalness: 0.6
     });
@@ -52,76 +52,139 @@ const createDeathStar = () => {
     trench.rotation.x = Math.PI / 2;
     deathStarGroup.add(trench);
 
-    // Add a second perpendicular trench for more detail
+    // Add three perpendicular trenches (longitudinal lines) at 60-degree intervals
+    // First longitudinal trench (already exists)
     const trench2 = trench.clone();
     trench2.rotation.x = 0;
     trench2.rotation.y = Math.PI / 2;
     deathStarGroup.add(trench2);
 
-    // Create weapon crater (following the reference implementation position)
-    // The reference positioned the weapon at left:50px, top:40px, translateZ(88px)
-    const craterGeometry = new THREE.SphereGeometry(10, 32, 32, 0, Math.PI * 0.5, 0, Math.PI * 0.5);
-    const craterMaterial = new THREE.MeshStandardMaterial({
-        color: 0x111111,
-        roughness: 0.8,
-        metalness: 0.5,
-        side: THREE.BackSide
-    });
-    
-    // Position crater off-center like in the reference
-    const crater = new THREE.Mesh(craterGeometry, craterMaterial);
-    // Convert the CSS-like positioning to 3D space
-    // In the reference: left:50px, top:40px on a 200px sphere (1/4 of the way across)
-    crater.position.set(20, 10, -30); // Offset from center, still on visible side
-    crater.rotation.y = Math.PI / 6; // Slight angle
-    crater.rotation.x = Math.PI / 15; // Slight tilt
-    deathStarGroup.add(crater);
+    // Second longitudinal trench - at 60 degrees
+    const trench3 = trench.clone();
+    trench3.rotation.x = 0;
+    trench3.rotation.y = Math.PI / 2 + Math.PI / 3; // 90° + 60°
+    deathStarGroup.add(trench3);
 
-    // Add detailed weapon components inside the crater
+    // Third longitudinal trench - at 120 degrees
+    const trench4 = trench.clone();
+    trench4.rotation.x = 0;
+    trench4.rotation.y = Math.PI / 2 + 2 * Math.PI / 3; // 90° + 120°
+    deathStarGroup.add(trench4);
+
+    // Modify the crater geometry to be less protruding
+    const craterGeometry = new THREE.SphereGeometry(10, 32, 32, 0, Math.PI * 0.4, 0, Math.PI * 0.4);
+    const craterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x222222,
+        roughness: 0.6,
+        metalness: 0.7,
+        side: THREE.BackSide,
+        emissive: 0x111111,
+        emissiveIntensity: 0.2
+    });
+
+    // Adjust crater position to be flush with the surface
+    const crater = new THREE.Mesh(craterGeometry, craterMaterial);
+    crater.position.set(0, 0, -39.8); // Moved slightly inward
+    crater.rotation.y = Math.PI;
+    // deathStarGroup.add(crater);
+
+    // Add superlaser components with more dramatic appearance
     const weaponGroup = new THREE.Group();
-    
-    // Main weapon dish
-    const weaponGeometry = new THREE.CircleGeometry(6, 32);
+
+    // Main weapon dish - larger and more defined
+    const weaponGeometry = new THREE.CircleGeometry(9, 32);
     const weaponMaterial = new THREE.MeshStandardMaterial({
-        color: 0x444444,
-        metalness: 0.8,
-        roughness: 0.2,
+        color: 0x333333,
+        metalness: 0.9,
+        roughness: 0.3,
         side: THREE.DoubleSide,
-        // Add gradient like in the reference
         emissive: 0x222222,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.4
     });
     const weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
     weaponGroup.add(weapon);
 
-    // Center focusing lens with glowing effect
-    const lensGeometry = new THREE.CircleGeometry(1.5, 32);
+    // Add concentric rings to the weapon for more detail
+    const ringGeometries = [7, 5, 3];
+    for (let i = 0; i < ringGeometries.length; i++) {
+        const ringGeometry = new THREE.RingGeometry(ringGeometries[i], ringGeometries[i] + 0.5, 32);
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            metalness: 0.8,
+            roughness: 0.4,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.position.z = 0.1 * (i + 1); 
+        weaponGroup.add(ring);
+    }
+
+    // Center focusing lens with strong glow effect
+    const lensGeometry = new THREE.CircleGeometry(2, 32);
     const lensMaterial = new THREE.MeshStandardMaterial({
-        color: 0x88ff88,
-        emissive: 0x00ff00,
-        emissiveIntensity: 0.8, // Increased intensity
-        metalness: 0.9,
-        roughness: 0.1,
+        color: 0xcccccc,        // Light metallic grey 
+        emissive: 0x666666,     // Subtle grey glow
+        emissiveIntensity: 0.7, 
+        metalness: 1.0,
+        roughness: 0.2,         // Smooth reflective surface
         side: THREE.DoubleSide
     });
     const lens = new THREE.Mesh(lensGeometry, lensMaterial);
-    lens.position.z = 0.2;
+    lens.position.z = 0.5;
     weaponGroup.add(lens);
 
-    // Position weapon to match the crater position
-    weaponGroup.position.copy(crater.position);
-    // Adjust to be slightly in front of the crater
-    weaponGroup.position.normalize().multiplyScalar(40);
-    // Apply the reference's rotation of rotateX(12deg)
-    weaponGroup.rotation.x = Math.PI / 15;
-    weaponGroup.rotation.y = Math.PI / 6;
-    deathStarGroup.add(weaponGroup);
+    // Position weapon in the northern hemisphere, offset from grid lines
+    const weaponPosition = new THREE.Vector3(-16, 15, -30); // X offset, Y up, Z toward camera
+    const normalizedPos = weaponPosition.clone().normalize().multiplyScalar(40);
     
-    // Add point light inside the weapon for glow effect - stronger and positioned correctly
-    const weaponLight = new THREE.PointLight(0x00ff00, 4, 30);
-    weaponLight.position.copy(weaponGroup.position);
-    weaponLight.position.normalize().multiplyScalar(38); // Position just inside the surface
+    // Store the weapon position on the Death Star group for later reference
+    deathStarGroup.userData.weaponPosition = normalizedPos.clone();
+
+    // Update weapon group position and rotation
+    weaponGroup.position.copy(normalizedPos);
+    // Make weapon face outward from its position
+    weaponGroup.lookAt(0, 0, 0);
+    // Add the weapon group to the Death Star
+    deathStarGroup.add(weaponGroup);
+
+    // Create a visible crater around the weapon
+    const visibleCraterGeometry = new THREE.CircleGeometry(12, 32);
+    const visibleCraterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x222222,
+        roughness: 0.7,
+        metalness: 0.5,
+        side: THREE.DoubleSide
+    });
+    const visibleCrater = new THREE.Mesh(visibleCraterGeometry, visibleCraterMaterial);
+    // Position slightly behind weapon to avoid z-fighting
+    visibleCrater.position.copy(normalizedPos);
+    visibleCrater.lookAt(0, 0, 0);
+    // Move slightly toward center to avoid z-fighting
+    visibleCrater.position.multiplyScalar(0.995);
+    deathStarGroup.add(visibleCrater);
+
+    // Add strong red point light for the weapon
+    const weaponLight = new THREE.PointLight(0xaaaaff, 2, 20); // Subtle bluish-white light
+    weaponLight.position.copy(normalizedPos);
+    // Move light slightly inward
+    weaponLight.position.multiplyScalar(0.95);
     deathStarGroup.add(weaponLight);
+
+    // Reduce the size of the glow effect to make it more focused
+    const glowGeometry = new THREE.CircleGeometry(7, 32); // Smaller size
+    const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xcccccc,         // Light grey glow
+        transparent: true,
+        opacity: 0.1,            // More subtle
+        side: THREE.DoubleSide
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.copy(normalizedPos);
+    // Make sure the glow faces outward correctly
+    glow.lookAt(0, 0, 0);
+    // Move slightly outward to avoid z-fighting
+    glow.position.multiplyScalar(1.001);
+    deathStarGroup.add(glow);
 
     // Add surface details - more prominent and varied
     for (let i = 0; i < 200; i++) {
@@ -147,7 +210,7 @@ const createDeathStar = () => {
         
         const detail = new THREE.Mesh(detailGeometry, detailMaterial);
         
-        // Don't put details where the crater is
+        // Don't put details where the weapon is
         let validPlacement = false;
         let phi, theta;
         
@@ -160,14 +223,14 @@ const createDeathStar = () => {
             const y = 40 * Math.sin(theta) * Math.sin(phi);
             const z = 40 * Math.cos(theta);
             
-            // Distance to crater position
-            const craterDistSquared = 
-                Math.pow(x - crater.position.x, 2) +
-                Math.pow(y - crater.position.y, 2) +
-                Math.pow(z - crater.position.z, 2);
+            // Distance to weapon position
+            const weaponDistSquared = 
+                Math.pow(x - normalizedPos.x, 2) +
+                Math.pow(y - normalizedPos.y, 2) +
+                Math.pow(z - normalizedPos.z, 2);
                 
-            // Avoid placing details too close to the crater
-            if (craterDistSquared > 200) {
+            // Increase the minimum distance to ensure no details inside weapon
+            if (weaponDistSquared > 300) {
                 validPlacement = true;
                 detail.position.set(x, y, z);
             }
@@ -513,6 +576,62 @@ const cometPath = {
     speed: 0.0005        // Speed of rotation (slower for a more majestic flight)
 };
 
+// Create a laser beam for the Death Star - change to dramatic red
+let isLaserFiring = false;
+let laserInitialized = false;  // Add this flag to track initialization
+
+const createLaserBeam = () => {
+    // Create a group to hold and orient the laser components
+    const laserGroup = new THREE.Group();
+    
+    // Create laser geometry - a long cylinder
+    // The cylinder's axis will be along the Y-axis by default
+    const laserGeometry = new THREE.CylinderGeometry(2, 2, 1000, 16, 1, false);
+    
+    // Center the cylinder at its origin for easier rotation
+    laserGeometry.translate(0, 500, 0);
+    
+    const laserMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000, // Dramatic red color
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide
+    });
+    
+    // Create the beam
+    const beam = new THREE.Mesh(laserGeometry, laserMaterial);
+    
+    // Add glow effect
+    const glowGeometry = new THREE.CylinderGeometry(4, 4, 1000, 16, 1, false);
+    glowGeometry.translate(0, 500, 0);
+    
+    const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff3333, // Slightly different red for the glow
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.DoubleSide
+    });
+    
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    
+    // Add beam and glow to the group
+    laserGroup.add(beam);
+    laserGroup.add(glow);
+    
+    // The rotation will be set dynamically when firing
+    
+    // Hide initially
+    laserGroup.visible = false;
+    
+    // Add to scene
+    scene.add(laserGroup);
+    
+    return laserGroup;
+};
+
+// Initialize the laser beam
+const laserBeam = createLaserBeam();
+
 function animate() {
     requestAnimationFrame(animate);
 
@@ -605,6 +724,88 @@ function animate() {
     updateParticles(mainParticles, 0.15, 0.3, 0.2);
     updateParticles(sparkParticles, 0.2, 0.4, 0.3);
     updateParticles(glowParticles, 0.1, 0.2, 0.15);
+    
+    // Laser firing logic - every 15 seconds, fire for 3 seconds
+    const laserCycleTime = 10000; // 15 seconds in milliseconds
+    const laserDuration = 4000;   // 3 seconds in milliseconds
+    
+    // Use modulo of current time to determine firing state
+    const currentTime = Date.now();
+    
+    // Add a delay before first firing to ensure everything is initialized
+    if (!laserInitialized && time > 100) {  // Small delay to ensure Death Star is positioned
+        laserInitialized = true;
+    }
+    
+    const cyclePosition = currentTime % laserCycleTime;
+    
+    // Get the weapon position from the Death Star userData
+    const weaponPos = deathStar.userData.weaponPosition;
+    
+    // Check if we should be firing, if the weapon position is available, and if initialization is complete
+    if (cyclePosition < laserDuration && weaponPos && laserInitialized) {
+        // We're in the firing period
+        if (!isLaserFiring) {
+            // Laser just started firing
+            isLaserFiring = true;
+            laserBeam.visible = true;
+            
+            // Get the weapon's GLOBAL position by properly accounting for Death Star's position and rotation
+            const deathStarWorldPosition = new THREE.Vector3();
+            const deathStarWorldQuaternion = new THREE.Quaternion();
+            const deathStarWorldScale = new THREE.Vector3();
+            
+            deathStar.matrixWorld.decompose(deathStarWorldPosition, deathStarWorldQuaternion, deathStarWorldScale);
+            
+            // Create a vector for the weapon position in local space
+            const localWeaponPos = weaponPos.clone();
+            
+            // Convert to world space by applying the Death Star's world transformation
+            const weaponGlobalPos = localWeaponPos.clone()
+                .applyQuaternion(deathStarWorldQuaternion)
+                .multiply(deathStarWorldScale)
+                .add(deathStarWorldPosition);
+            
+            // Get direction from Death Star center to weapon (in world space)
+            const deathStarCenter = deathStar.position.clone();
+            const weaponDirection = new THREE.Vector3().subVectors(weaponGlobalPos, deathStarCenter).normalize();
+            
+            // Position laser beam at weapon position
+            laserBeam.position.copy(weaponGlobalPos);
+            
+            // Point the laser beam away from the Death Star
+            const targetPoint = new THREE.Vector3()
+                .copy(weaponGlobalPos)
+                .add(weaponDirection.multiplyScalar(500)); // Point far away in weapon direction
+                
+            // Create rotation that points the beam outward from the weapon
+            laserBeam.lookAt(targetPoint);
+            
+            // Rotate 90 degrees to align cylinder axis with beam direction
+            laserBeam.rotateX(Math.PI/2);
+            
+            // Create bright flash at weapon
+            const flashLight = new THREE.PointLight(0xff0000, 10, 100);
+            flashLight.position.copy(weaponPos);
+            flashLight.name = "flashLight";
+            deathStar.add(flashLight);
+        }
+        
+        // Animate the laser intensity
+        const intensity = 0.7 + Math.sin(time * 0.1) * 0.3;
+        laserBeam.children[0].material.opacity = intensity;
+        laserBeam.children[1].material.opacity = intensity * 0.5;
+    } else if (isLaserFiring) {
+        // We just stopped firing
+        isLaserFiring = false;
+        laserBeam.visible = false;
+        
+        // Remove the flash light
+        const flashLight = deathStar.getObjectByName("flashLight");
+        if (flashLight) {
+            deathStar.remove(flashLight);
+        }
+    }
     
     renderer.render(scene, camera);
 }
