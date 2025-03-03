@@ -63,39 +63,75 @@ const cometMaterial = new THREE.MeshStandardMaterial({
 const comet = new THREE.Mesh(cometGeometry, cometMaterial);
 comet.castShadow = true;
 
-// Create comet tail
-const tailGeometry = new THREE.ConeGeometry(0.9, 9, 32);
-const tailMaterial = new THREE.MeshPhongMaterial({
-    color: 0xff4400,  // Orange-red base color
-    emissive: 0xff8844,  // Lighter orange for glow
-    emissiveIntensity: 0.5,
-    transparent: true,
-    opacity: 0.6
-});
-const tail = new THREE.Mesh(tailGeometry, tailMaterial);
-tail.position.x = -4.5;  // Position behind the comet
-tail.rotation.z = Math.PI / 2;  // Rotate to point backwards
+// Create multiple flame layers for the tail
+const createFlameMesh = (radius, length, color, emissiveColor, opacity) => {
+    const geometry = new THREE.ConeGeometry(radius, length, 32);
+    const material = new THREE.MeshPhongMaterial({
+        color: color,
+        emissive: emissiveColor,
+        emissiveIntensity: 0.5,
+        transparent: true,
+        opacity: opacity
+    });
+    return new THREE.Mesh(geometry, material);
+};
+
+// Create main tail
+const tail = createFlameMesh(0.9, 9, 0xff4400, 0xff8844, 0.6);
+tail.position.x = -4.5;
+tail.rotation.z = Math.PI / 2;
 comet.add(tail);
 
-// Add particle system for comet trail
-const particlesGeometry = new THREE.BufferGeometry();
-const particlesCnt = 1000;
-const posArray = new Float32Array(particlesCnt * 3);
-for(let i = 0; i < particlesCnt * 3; i += 3) {
-    posArray[i] = 0;     // x
-    posArray[i + 1] = 0; // y
-    posArray[i + 2] = 0; // z
-}
-particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.05,
-    color: 0xff6622,  // Orange particles
-    transparent: true,
-    opacity: 0.5,
-    blending: THREE.AdditiveBlending
-});
-const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-scene.add(particlesMesh);
+// Create inner flame
+const innerFlame = createFlameMesh(0.6, 7, 0xff7700, 0xffaa22, 0.7);
+innerFlame.position.x = -3.5;
+innerFlame.rotation.z = Math.PI / 2;
+comet.add(innerFlame);
+
+// Create outer flame
+const outerFlame = createFlameMesh(1.1, 11, 0xff3300, 0xff6611, 0.4);
+outerFlame.position.x = -5.5;
+outerFlame.rotation.z = Math.PI / 2;
+comet.add(outerFlame);
+
+// Add particle systems for the trail
+const createParticleSystem = (count, size, color, spread) => {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+    
+    for(let i = 0; i < count * 3; i += 3) {
+        positions[i] = 0;
+        positions[i + 1] = 0;
+        positions[i + 2] = 0;
+        // More focused velocities, mainly moving backward
+        velocities[i] = -Math.random() * spread; // Mainly backward movement
+        velocities[i + 1] = (Math.random() - 0.5) * spread * 0.3; // Reduced vertical spread
+        velocities[i + 2] = (Math.random() - 0.5) * spread * 0.3; // Reduced depth spread
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+    
+    const material = new THREE.PointsMaterial({
+        size: size,
+        color: color,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+    });
+    
+    return new THREE.Points(geometry, material);
+};
+
+// Create multiple particle systems for different effects
+const mainParticles = createParticleSystem(1000, 0.05, 0xff6622, 0.08);
+const sparkParticles = createParticleSystem(500, 0.03, 0xffaa44, 0.1);
+const glowParticles = createParticleSystem(300, 0.08, 0xff4400, 0.04);
+
+scene.add(mainParticles);
+scene.add(sparkParticles);
+scene.add(glowParticles);
 
 scene.add(comet);
 
@@ -173,19 +209,48 @@ function animate() {
     comet.position.y = cometPath.height;
     comet.position.z = Math.sin(progress * Math.PI * 2) * 2; // Small z-axis movement for interest
     
-    // Update particle trail
-    const positions = particlesMesh.geometry.attributes.position.array;
-    // Move all particles back one position
-    for(let i = positions.length - 1; i >= 3; i -= 3) {
-        positions[i] = positions[i - 3];
-        positions[i - 1] = positions[i - 4];
-        positions[i - 2] = positions[i - 5];
-    }
-    // Add new particle at comet's position, slightly offset behind
-    positions[0] = comet.position.x - 0.5;  // Offset behind the comet
-    positions[1] = comet.position.y;
-    positions[2] = comet.position.z;
-    particlesMesh.geometry.attributes.position.needsUpdate = true;
+    // Animate flame layers
+    const flameTime = time * 0.05;
+    innerFlame.scale.y = 1 + Math.sin(flameTime * 1.5) * 0.1;
+    outerFlame.scale.y = 1 + Math.cos(flameTime) * 0.15;
+    tail.scale.y = 1 + Math.sin(flameTime * 0.8) * 0.05;
+
+    // Rotate flames slightly for more dynamic effect
+    innerFlame.rotation.x = Math.sin(flameTime * 0.5) * 0.05;
+    outerFlame.rotation.x = Math.cos(flameTime * 0.3) * 0.08;
+
+    // Update particle systems
+    const updateParticles = (particles, speed, spread, decay) => {
+        const positions = particles.geometry.attributes.position.array;
+        const velocities = particles.geometry.attributes.velocity.array;
+        
+        for(let i = 0; i < positions.length; i += 3) {
+            // Move particles based on their velocity
+            positions[i] += velocities[i] * speed;
+            positions[i + 1] += velocities[i + 1] * speed;
+            positions[i + 2] += velocities[i + 2] * speed;
+            
+            // Reset particles that move too far from their current spawn point
+            const distanceFromComet = Math.abs(positions[i] - comet.position.x);
+            if(distanceFromComet > 10) {
+                // Reset to just behind the comet
+                positions[i] = comet.position.x;
+                positions[i + 1] = comet.position.y;
+                positions[i + 2] = comet.position.z;
+                
+                // Initialize velocity relative to comet's movement
+                velocities[i] = -Math.random() * decay;
+                velocities[i + 1] = (Math.random() - 0.5) * spread * 0.2;
+                velocities[i + 2] = (Math.random() - 0.5) * spread * 0.2;
+            }
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+    };
+
+    // Update particle systems with reduced spread
+    updateParticles(mainParticles, 0.15, 0.3, 0.2);
+    updateParticles(sparkParticles, 0.2, 0.4, 0.3);
+    updateParticles(glowParticles, 0.1, 0.2, 0.15);
     
     // Rotate stars slightly
     stars.rotation.y += 0.0001;
