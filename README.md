@@ -7,6 +7,8 @@ Celestial advertisements for [fly.pieter.com](https://fly.pieter.com), created w
 ### Not a Death Star
 A totally-not-a-death-star space station featuring the memex.tech brand. Any similarity to certain galactic empires' space stations is purely coincidental.
 
+![Celestial Advertisement](./social-share.png)
+
 ### Halley's Comet
 A blazing comet carrying the memex.tech brand across the night sky, inspired by the famous celestial wanderer.
 
