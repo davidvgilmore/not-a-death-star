@@ -44,7 +44,15 @@ const stars = new THREE.Points(starsGeometry, starsMaterial);
 scene.add(stars);
 
 // Create comet
-const cometGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+const cometGeometry = new THREE.SphereGeometry(
+    1.5,     // radius
+    128,     // widthSegments - doubled for smoother surface
+    64,      // heightSegments - doubled for smoother surface
+    0,       // phiStart - starting angle
+    Math.PI * 2, // phiLength - full circle
+    0,       // thetaStart - starting vertical angle 
+    Math.PI  // thetaLength - full height
+);
 const cometTexture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg');
 const cometMaterial = new THREE.MeshStandardMaterial({ 
     map: cometTexture,
@@ -56,7 +64,7 @@ const comet = new THREE.Mesh(cometGeometry, cometMaterial);
 comet.castShadow = true;
 
 // Create comet tail
-const tailGeometry = new THREE.ConeGeometry(0.3, 3, 32);
+const tailGeometry = new THREE.ConeGeometry(0.9, 9, 32);
 const tailMaterial = new THREE.MeshPhongMaterial({
     color: 0xff4400,  // Orange-red base color
     emissive: 0xff8844,  // Lighter orange for glow
@@ -65,7 +73,7 @@ const tailMaterial = new THREE.MeshPhongMaterial({
     opacity: 0.6
 });
 const tail = new THREE.Mesh(tailGeometry, tailMaterial);
-tail.position.x = -1.5;  // Position behind the comet
+tail.position.x = -4.5;  // Position behind the comet
 tail.rotation.z = Math.PI / 2;  // Rotate to point backwards
 comet.add(tail);
 
@@ -111,29 +119,32 @@ const fontLoader = new FontLoader();
 fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
     const textGeometry = new TextGeometry('memex.tech', {
         font: font,
-        size: 0.15,  // Smaller text
-        height: 0.03,  // Less depth
+        size: 0.5,  // Larger text
+        height: 0.03,  // More depth
         curveSegments: 12,
         bevelEnabled: true,
         bevelThickness: 0.01,
-        bevelSize: 0.005,
+        bevelSize: 0.015,
         bevelOffset: 0,
         bevelSegments: 5
     });
-    const textMaterial = new THREE.MeshStandardMaterial({ 
+    const textMaterial = new THREE.MeshPhongMaterial({ 
         color: 0xffffff,
-        metalness: 0.3,
-        roughness: 0.4
+        emissive: 0xffffff,
+        emissiveIntensity: 0.5,
+        shininess: 100
     });
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
     
     // Center and position the text on the side of the comet
     textGeometry.computeBoundingBox();
     const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
-    textMesh.position.x = -textWidth / 2;
-    textMesh.position.y = 0;
-    textMesh.position.z = 0.5;  // Position on the side
-    textMesh.rotation.y = Math.PI / 2;  // Rotate to face outward
+    textMesh.position.x = 0;
+    textMesh.position.y = -0.5;  // Move down slightly
+    textMesh.position.z = 1.5;  // Position on the side
+    textMesh.rotation.z = Math.PI;  // Flip text right-side up
+    textMesh.rotation.y = -Math.PI;  // Face outward from comet
+    textMesh.rotation.x = Math.PI;  // Face outward from comet
     
     comet.add(textMesh);
 });
@@ -148,7 +159,7 @@ const cometPath = {
     startX: -30,
     endX: 30,
     height: 10,
-    duration: 200 // frames for one complete path
+    duration: 500 // frames for one complete path
 };
 
 function animate() {
