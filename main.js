@@ -13,7 +13,7 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // Create ground
-const groundGeometry = new THREE.PlaneGeometry(100, 100);
+const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
 const groundMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x1a472a,  // Dark green
     roughness: 0.8,
@@ -29,99 +29,193 @@ scene.add(ground);
 const createDeathStar = () => {
     const deathStarGroup = new THREE.Group();
     
-    // Main sphere
+    // Main sphere with better materials
     const sphereGeometry = new THREE.SphereGeometry(40, 64, 64);
     const sphereMaterial = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        roughness: 0.7,
-        metalness: 0.5,
-        flatShading: true
+        color: 0xaaaaaa,
+        roughness: 0.6,
+        metalness: 0.3,
+        emissive: 0x222222,
+        emissiveIntensity: 0.2
     });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     deathStarGroup.add(sphere);
 
-    // Create equatorial trench
-    const trenchGeometry = new THREE.TorusGeometry(40, 1, 16, 100);
+    // Create equatorial trench with proper geometry
+    const trenchGeometry = new THREE.TorusGeometry(40, 1.5, 16, 100);
     const trenchMaterial = new THREE.MeshStandardMaterial({
-        color: 0x444444,
-        roughness: 0.8,
+        color: 0x333333,
+        roughness: 0.7,
         metalness: 0.6
     });
     const trench = new THREE.Mesh(trenchGeometry, trenchMaterial);
     trench.rotation.x = Math.PI / 2;
     deathStarGroup.add(trench);
 
-    // Create superlaser dish
-    const dishGeometry = new THREE.CircleGeometry(8, 32);
-    const dishMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.9,
-        metalness: 0.7,
+    // Add a second perpendicular trench for more detail
+    const trench2 = trench.clone();
+    trench2.rotation.x = 0;
+    trench2.rotation.y = Math.PI / 2;
+    deathStarGroup.add(trench2);
+
+    // Create weapon crater (following the reference implementation position)
+    // The reference positioned the weapon at left:50px, top:40px, translateZ(88px)
+    const craterGeometry = new THREE.SphereGeometry(10, 32, 32, 0, Math.PI * 0.5, 0, Math.PI * 0.5);
+    const craterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        roughness: 0.8,
+        metalness: 0.5,
+        side: THREE.BackSide
+    });
+    
+    // Position crater off-center like in the reference
+    const crater = new THREE.Mesh(craterGeometry, craterMaterial);
+    // Convert the CSS-like positioning to 3D space
+    // In the reference: left:50px, top:40px on a 200px sphere (1/4 of the way across)
+    crater.position.set(20, 10, -30); // Offset from center, still on visible side
+    crater.rotation.y = Math.PI / 6; // Slight angle
+    crater.rotation.x = Math.PI / 15; // Slight tilt
+    deathStarGroup.add(crater);
+
+    // Add detailed weapon components inside the crater
+    const weaponGroup = new THREE.Group();
+    
+    // Main weapon dish
+    const weaponGeometry = new THREE.CircleGeometry(6, 32);
+    const weaponMaterial = new THREE.MeshStandardMaterial({
+        color: 0x444444,
+        metalness: 0.8,
+        roughness: 0.2,
+        side: THREE.DoubleSide,
+        // Add gradient like in the reference
+        emissive: 0x222222,
+        emissiveIntensity: 0.3
+    });
+    const weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
+    weaponGroup.add(weapon);
+
+    // Center focusing lens with glowing effect
+    const lensGeometry = new THREE.CircleGeometry(1.5, 32);
+    const lensMaterial = new THREE.MeshStandardMaterial({
+        color: 0x88ff88,
+        emissive: 0x00ff00,
+        emissiveIntensity: 0.8, // Increased intensity
+        metalness: 0.9,
+        roughness: 0.1,
         side: THREE.DoubleSide
     });
-    const dish = new THREE.Mesh(dishGeometry, dishMaterial);
-    dish.position.set(-38, 0, 0); // Position on the surface
-    dish.rotation.y = Math.PI / 2;
-    deathStarGroup.add(dish);
+    const lens = new THREE.Mesh(lensGeometry, lensMaterial);
+    lens.position.z = 0.2;
+    weaponGroup.add(lens);
 
-    // Add surface details
-    for (let i = 0; i < 100; i++) {
-        const detailGeometry = new THREE.BoxGeometry(
-            Math.random() * 2 + 1,
-            Math.random() * 2 + 1,
-            0.5
-        );
+    // Position weapon to match the crater position
+    weaponGroup.position.copy(crater.position);
+    // Adjust to be slightly in front of the crater
+    weaponGroup.position.normalize().multiplyScalar(40);
+    // Apply the reference's rotation of rotateX(12deg)
+    weaponGroup.rotation.x = Math.PI / 15;
+    weaponGroup.rotation.y = Math.PI / 6;
+    deathStarGroup.add(weaponGroup);
+    
+    // Add point light inside the weapon for glow effect - stronger and positioned correctly
+    const weaponLight = new THREE.PointLight(0x00ff00, 4, 30);
+    weaponLight.position.copy(weaponGroup.position);
+    weaponLight.position.normalize().multiplyScalar(38); // Position just inside the surface
+    deathStarGroup.add(weaponLight);
+
+    // Add surface details - more prominent and varied
+    for (let i = 0; i < 200; i++) {
+        // Vary detail sizes and shapes
+        const size = Math.random() * 2 + 0.5;
+        let detailGeometry;
+        
+        // Mix different geometric shapes for details
+        const shapeType = Math.floor(Math.random() * 3);
+        if (shapeType === 0) {
+            detailGeometry = new THREE.BoxGeometry(size, size, 0.5);
+        } else if (shapeType === 1) {
+            detailGeometry = new THREE.CylinderGeometry(size/3, size/3, 0.5, 6);
+        } else {
+            detailGeometry = new THREE.BoxGeometry(size, size/2, 0.3);
+        }
+        
         const detailMaterial = new THREE.MeshStandardMaterial({
-            color: 0x666666,
+            color: Math.random() > 0.8 ? 0x777777 : 0x555555,
             roughness: 0.8,
             metalness: 0.6
         });
+        
         const detail = new THREE.Mesh(detailGeometry, detailMaterial);
         
-        // Position on sphere surface
-        const phi = Math.random() * Math.PI * 2;
-        const theta = Math.random() * Math.PI;
-        detail.position.x = 40 * Math.sin(theta) * Math.cos(phi);
-        detail.position.y = 40 * Math.sin(theta) * Math.sin(phi);
-        detail.position.z = 40 * Math.cos(theta);
+        // Don't put details where the crater is
+        let validPlacement = false;
+        let phi, theta;
+        
+        while (!validPlacement) {
+            phi = Math.random() * Math.PI * 2;
+            theta = Math.random() * Math.PI;
+            
+            // Position on sphere surface
+            const x = 40 * Math.sin(theta) * Math.cos(phi);
+            const y = 40 * Math.sin(theta) * Math.sin(phi);
+            const z = 40 * Math.cos(theta);
+            
+            // Distance to crater position
+            const craterDistSquared = 
+                Math.pow(x - crater.position.x, 2) +
+                Math.pow(y - crater.position.y, 2) +
+                Math.pow(z - crater.position.z, 2);
+                
+            // Avoid placing details too close to the crater
+            if (craterDistSquared > 200) {
+                validPlacement = true;
+                detail.position.set(x, y, z);
+            }
+        }
         
         // Orient to face outward
         detail.lookAt(0, 0, 0);
         deathStarGroup.add(detail);
     }
 
-    // Add memex.tech text
+    // Add memex.tech text - proper positioning and orientation
     const fontLoader = new FontLoader();
     fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
         const textGeometry = new TextGeometry('memex.tech', {
             font: font,
-            size: 8,
-            height: 1,
+            size: 6,
+            height: 0.5,               // Reduced from 1 to 0.5 for less thickness
             curveSegments: 12,
             bevelEnabled: true,
-            bevelThickness: 0.2,
-            bevelSize: 0.1,
+            bevelThickness: 0.1,       // Reduced from 0.2 to 0.1
+            bevelSize: 0.05,           // Reduced from 0.1 to 0.05
             bevelOffset: 0,
             bevelSegments: 5
         });
         const textMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            roughness: 0.3,
-            metalness: 0.7
+            color: 0xffffff,          // Already white
+            roughness: 0.2,          // Reduced for more shininess
+            metalness: 0.5,          // Reduced to avoid darkening
+            emissive: 0xffffff,      // Pure white emissive for maximum brightness
+            emissiveIntensity: 0.7   // Increased intensity for more glow
         });
-        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
         
         // Center the text
         textGeometry.computeBoundingBox();
         const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
-        textMesh.position.set(-textWidth/2, 20, -35);
-        textMesh.lookAt(0, 0, 0);
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        
+        // Position text so it faces the camera
+        textMesh.position.set(-textWidth/2, 0, -43); // Position in front of sphere on -z axis
+        textMesh.rotation.y = Math.PI; // Rotate to face the camera
         
         deathStarGroup.add(textMesh);
     });
 
-    // Position Death Star in background
-    deathStarGroup.position.set(-100, 50, -150);
+    // Position Death Star for better visibility - center in scene
+    deathStarGroup.position.set(-80, 60, -160);
+    // Set a fixed 180-degree rotation around y-axis (Math.PI)
+    deathStarGroup.rotation.y = Math.PI; // Rotated 180 degrees
     
     return deathStarGroup;
 };
@@ -130,15 +224,16 @@ const createDeathStar = () => {
 const createEnhancedStars = () => {
     const starsGroup = new THREE.Group();
     
-    // Multiple layers of stars
+    // Multiple layers of stars with much greater distances
     const createStarLayer = (count, size, depth) => {
         const geometry = new THREE.BufferGeometry();
         const vertices = [];
         
         for (let i = 0; i < count; i++) {
-            const x = (Math.random() - 0.5) * 400;
-            const y = Math.random() * 200;
-            const z = (Math.random() - 0.5) * 400 + depth;
+            // Increase spread to create a more expansive starfield
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000 + depth;
             vertices.push(x, y, z);
         }
         
@@ -152,9 +247,10 @@ const createEnhancedStars = () => {
         return new THREE.Points(geometry, material);
     };
     
-    starsGroup.add(createStarLayer(2000, 0.15, -200));
-    starsGroup.add(createStarLayer(2000, 0.1, -100));
-    starsGroup.add(createStarLayer(2000, 0.05, 0));
+    // Create much more distant star layers
+    starsGroup.add(createStarLayer(3000, 0.3, -3000));  // Far background stars
+    starsGroup.add(createStarLayer(3000, 0.2, -2000));  // Mid-distance stars
+    starsGroup.add(createStarLayer(3000, 0.1, -1000));  // Closer stars
     
     return starsGroup;
 };
@@ -407,11 +503,14 @@ controls.addEventListener('unlock', function () {
 
 // Animation
 let time = 0;
+
+// Update comet path for circular motion
 const cometPath = {
-    startX: -30,
-    endX: 30,
-    height: 10,
-    duration: 500 // frames for one complete path
+    radius: 300,         // Large radius for the circular path
+    height: 70,          // Height above the ground
+    centerX: 0,          // Center of the circular path (X)
+    centerZ: -100,       // Center of the circular path (Z)
+    speed: 0.0005        // Speed of rotation (slower for a more majestic flight)
 };
 
 function animate() {
@@ -443,11 +542,17 @@ function animate() {
     
     time += 1;
     
-    // Move comet in a horizontal path
-    const progress = (time % cometPath.duration) / cometPath.duration;
-    comet.position.x = cometPath.startX + (cometPath.endX - cometPath.startX) * progress;
-    comet.position.y = cometPath.height;
-    comet.position.z = Math.sin(progress * Math.PI * 2) * 2; // Small z-axis movement for interest
+    // Move comet in a circular path around the sky
+    const angle = time * cometPath.speed;
+    comet.position.x = cometPath.centerX + cometPath.radius * Math.cos(angle);
+    comet.position.y = cometPath.height; // Fixed height above ground
+    comet.position.z = cometPath.centerZ + cometPath.radius * Math.sin(angle);
+    
+    // Rotate comet to face direction of travel
+    comet.rotation.y = Math.atan2(
+        -Math.cos(angle),  // Direction X
+        -Math.sin(angle)   // Direction Z
+    );
     
     // Animate flame layers
     const flameTime = time * 0.05;
@@ -471,30 +576,35 @@ function animate() {
             positions[i + 2] += velocities[i + 2] * speed;
             
             // Reset particles that move too far from their current spawn point
-            const distanceFromComet = Math.abs(positions[i] - comet.position.x);
+            const distanceFromComet = Math.sqrt(
+                Math.pow(positions[i] - comet.position.x, 2) + 
+                Math.pow(positions[i+1] - comet.position.y, 2) + 
+                Math.pow(positions[i+2] - comet.position.z, 2)
+            );
+            
             if(distanceFromComet > 10) {
-                // Reset to just behind the comet
+                // Reset to comet's position
                 positions[i] = comet.position.x;
                 positions[i + 1] = comet.position.y;
                 positions[i + 2] = comet.position.z;
                 
-                // Initialize velocity relative to comet's movement
-                velocities[i] = -Math.random() * decay;
+                // Calculate velocity direction away from travel direction
+                const tangentX = -Math.sin(angle);
+                const tangentZ = Math.cos(angle);
+                
+                // Initialize velocity relative to comet's movement direction
+                velocities[i] = -Math.random() * decay * tangentX;
                 velocities[i + 1] = (Math.random() - 0.5) * spread * 0.2;
-                velocities[i + 2] = (Math.random() - 0.5) * spread * 0.2;
+                velocities[i + 2] = -Math.random() * decay * tangentZ;
             }
         }
         particles.geometry.attributes.position.needsUpdate = true;
     };
 
-    // Update particle systems with reduced spread
+    // Update particle systems
     updateParticles(mainParticles, 0.15, 0.3, 0.2);
     updateParticles(sparkParticles, 0.2, 0.4, 0.3);
     updateParticles(glowParticles, 0.1, 0.2, 0.15);
-    
-    // Animate stars and Death Star
-    stars.rotation.y += 0.0001;
-    deathStar.rotation.y += 0.0001;
     
     renderer.render(scene, camera);
 }
